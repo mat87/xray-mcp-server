@@ -26,7 +26,7 @@ git clone https://github.com/mat87/xray-mcp-server.git
 cd xray-mcp-server
 ```
 
-**2. (Optional) Create a virtual environment:**
+**2. Create a virtual environment:**
 It is highly recommended to use a virtual environment to keep dependencies isolated.
 ```bash
 python -m venv venv
@@ -59,7 +59,7 @@ Add the server configuration to your Gemini CLI MCP settings file (typically loc
     "xray-server": {
       "command": "python",
       "args": [
-        "/ABSOLUTE/PATH/TO/xray-mcp-server/xray_mcp_server.py"
+        "/ABSOLUTE/PATH/TO/xray-mcp-server/server.py"
       ],
       "env": {
         "XRAY_CLIENT_ID": "YOUR_CLIENT_ID_HERE",

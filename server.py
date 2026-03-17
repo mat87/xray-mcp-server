@@ -56,13 +56,13 @@ async def send_bulk_import_request(issue_key: str, steps: list[dict], token: str
 
 
 @mcp.tool()
-async def import_xray_test_from_file(issue_key: str, file_path: str) -> str:
+async def import_test_from_file(issue_key: str, file_path: str) -> str:
     """
     Loads test steps from a local JSON file and imports them into an existing Xray test issue.
 
     Args:
         issue_key: The Jira issue key where the steps will be imported, e.g., "PROJ-123".
-        file_path: The absolute path to the local JSON file containing the steps, e.g., "C:/tests/steps.json".
+        file_path: The absolute path to the local JSON file containing the steps.
     """
     try:
         steps = read_steps_from_json(file_path)
