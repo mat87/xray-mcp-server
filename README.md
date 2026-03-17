@@ -22,7 +22,7 @@ With this tool, you can use natural language to ask your AI model to load a loca
 
 **1. Clone the repository:**
 ```bash
-git clone [https://github.com/your_username/xray-mcp-server.git](https://github.com/your_username/xray-mcp-server.git)
+git clone https://github.com/mat87/xray-mcp-server.git
 cd xray-mcp-server
 ```
 
@@ -48,10 +48,10 @@ pip install -r requirements.txt
 
 ## ⚙️ Configuration & Setup
 
-To make this server visible to your AI assistant, you need to add it to your MCP client's configuration file. Remember to provide the **absolute path** to the `xray_mcp_server.py` script.
+To make this server visible to your AI assistant, you need to add it to your MCP client's configuration file. Remember to provide the **absolute path** to the `server.py`.
 
-### Option A: Gemini CLI
-Add the server configuration to your Gemini CLI MCP settings file (typically located at `~/.config/gemini/mcp.json` or a similar path depending on your operating system).
+### Gemini CLI
+Add the server configuration to your Gemini CLI MCP settings file (typically located at `~/.gemini/settings.json`).
 
 ```json
 {
