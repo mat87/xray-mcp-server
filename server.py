@@ -9,6 +9,18 @@ XRAY_AUTH_URL = "https://xray.cloud.getxray.app/api/v1/authenticate"
 XRAY_GRAPHQL_URL = "https://xray.cloud.getxray.app/api/v2/graphql"
 
 
+def _get_step_value(step: dict, keys: list[str], default_value: str = "") -> str:
+    """
+    Helper to extract a value from a step dictionary, trying multiple keys.
+    Returns the first non-empty string value found, or the default_value.
+    """
+    for key in keys:
+        value = step.get(key)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    return default_value
+
+
 async def get_xray_token() -> str:
     client_id = os.environ.get("XRAY_CLIENT_ID")
     client_secret = os.environ.get("XRAY_CLIENT_SECRET")
@@ -82,13 +94,9 @@ async def add_steps_to_existing_xray_test(issue_key: str, steps: list[dict]) -> 
         added_count = 0
         async with httpx.AsyncClient() as client:
             for step in steps:
-                action_raw = step.get("action") or step.get("step") or step.get("description") or "Missing action"
-                data_raw = step.get("data") or step.get("input") or ""
-                result_raw = step.get("result") or step.get("expected_result") or ""
-
-                action_str = str(action_raw).strip()
-                data_str = str(data_raw).strip()
-                result_str = str(result_raw).strip()
+                action_str = _get_step_value(step, ["action", "step", "description"], "Missing action")
+                data_str = _get_step_value(step, ["data", "input"])
+                result_str = _get_step_value(step, ["result", "expected_result"])
 
                 variables = {
                     "issueId": issue_id,
@@ -109,8 +117,10 @@ async def add_steps_to_existing_xray_test(issue_key: str, steps: list[dict]) -> 
 
         return f"SUCCESS! Successfully added {added_count} steps to the issue {issue_key}."
 
+    except (ValueError, httpx.HTTPStatusError) as e:
+        return f"ERROR: Xray API interaction failed: {str(e)}"
     except Exception as e:
-        return f"ERROR: An error occurred: {str(e)}"
+        return f"ERROR: An unexpected error occurred in add_steps_to_existing_xray_test: {type(e).__name__} - {str(e)}"
 
 
 # ==========================================
@@ -127,13 +137,13 @@ async def create_new_xray_test(project_key: str, summary: str, steps: list[dict]
 
         steps_graphql = ""
         for step in steps:
-            action_raw = step.get("action") or step.get("step") or step.get("description") or "Missing action"
-            data_raw = step.get("data") or step.get("input") or ""
-            result_raw = step.get("result") or step.get("expected_result") or ""
+            action_str = _get_step_value(step, ["action", "step", "description"], "Missing action")
+            data_str = _get_step_value(step, ["data", "input"])
+            result_str = _get_step_value(step, ["result", "expected_result"])
 
-            action_escaped = json.dumps(str(action_raw).strip())
-            data_escaped = json.dumps(str(data_raw).strip()) if str(data_raw).strip() else "null"
-            result_escaped = json.dumps(str(result_raw).strip()) if str(result_raw).strip() else "null"
+            action_escaped = json.dumps(action_str)
+            data_escaped = json.dumps(data_str) if data_str else "null"
+            result_escaped = json.dumps(result_str) if result_str else "null"
 
             steps_graphql += f"{{ action: {action_escaped}, data: {data_escaped}, result: {result_escaped} }},\n"
 
@@ -186,8 +196,10 @@ async def create_new_xray_test(project_key: str, summary: str, steps: list[dict]
 
             return f"SUCCESS! I've successfully created a new Xray Test issue: {issue_key} with {len(steps)} auto-generated steps."
 
+    except (ValueError, httpx.HTTPStatusError) as e:
+        return f"ERROR: Xray API interaction failed: {str(e)}"
     except Exception as e:
-        return f"ERROR: An unexpected error occurred: {str(e)}"
+        return f"ERROR: An unexpected error occurred in create_new_xray_test: {type(e).__name__} - {str(e)}"
 
 
 if __name__ == "__main__":
