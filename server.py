@@ -202,5 +202,66 @@ async def create_new_xray_test(project_key: str, summary: str, steps: list[dict]
         return f"ERROR: An unexpected error occurred in create_new_xray_test: {type(e).__name__} - {str(e)}"
 
 
+# ==========================================
+# TOOL 3: Copy Attachments between Jira Issues
+# ==========================================
+@mcp.tool()
+async def copy_jira_attachments(source_issue_key: str, target_issue_key: str) -> str:
+    """
+    Downloads all attachments (like UI designs/images) from a source Jira issue and uploads them to a target Jira issue.
+    Call this right after creating a new test, to ensure image tags like !image.png! work correctly.
+    """
+    jira_domain = os.environ.get("JIRA_DOMAIN")
+    jira_email = os.environ.get("JIRA_EMAIL")
+    jira_api_token = os.environ.get("JIRA_API_TOKEN")
+
+    if not all([jira_domain, jira_email, jira_api_token]):
+        return "ERROR: Missing Jira credentials. Please set JIRA_DOMAIN, JIRA_EMAIL, and JIRA_API_TOKEN in the environment variables."
+
+    auth = httpx.BasicAuth(jira_email, jira_api_token)
+    base_url = f"https://{jira_domain}/rest/api/3"
+
+    try:
+        async with httpx.AsyncClient(auth=auth, follow_redirects=True) as client:
+            # 1. Fetch attachment metadata from the source issue
+            resp = await client.get(f"{base_url}/issue/{source_issue_key}?fields=attachment", timeout=15.0)
+            resp.raise_for_status()
+            attachments = resp.json().get("fields", {}).get("attachment", [])
+
+            if not attachments:
+                return f"No attachments found in {source_issue_key}."
+
+            copied_files = []
+
+            # 2. Download each attachment and upload to the target issue
+            for att in attachments:
+                att_name = att["filename"]
+                content_url = att["content"]
+
+                # Download from source
+                dl_resp = await client.get(content_url, timeout=30.0)
+                dl_resp.raise_for_status()
+
+                # Upload to target
+                # Jira requires this specific header for attachments
+                headers = {"X-Atlassian-Token": "no-check"}
+                files = {'file': (att_name, dl_resp.content)}
+
+                up_resp = await client.post(
+                    f"{base_url}/issue/{target_issue_key}/attachments",
+                    headers=headers,
+                    files=files,
+                    timeout=30.0
+                )
+                up_resp.raise_for_status()
+                copied_files.append(att_name)
+
+        return f"SUCCESS: Copied {len(copied_files)} attachments ({', '.join(copied_files)}) to {target_issue_key}."
+
+    except (ValueError, httpx.HTTPStatusError) as e:
+        return f"ERROR: Jira API interaction failed: {str(e)}"
+    except Exception as e:
+        return f"ERROR: An unexpected error occurred in copy_jira_attachments: {type(e).__name__} - {str(e)}"
+
 if __name__ == "__main__":
     mcp.run(transport='stdio')
